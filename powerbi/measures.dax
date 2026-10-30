@@ -1,0 +1,44 @@
+// Create a table "_Measures" (Enter data, one blank column, then delete the column) and add these.
+// Relationships (all many-to-one, single direction):
+//   fact_daily_status[dataset_id]    -> dim_dataset[dataset_id]
+//   fact_refresh_attempt[dataset_id] -> dim_dataset[dataset_id]
+//   fact_daily_status[date]          -> dim_date[date]
+//   fact_refresh_attempt[date]       -> dim_date[date]
+// Untested in Power BI Desktop from this repo; check each against the numbers in the README.
+
+Datasets = DISTINCTCOUNT ( dim_dataset[dataset_id] )
+
+// Latest day in the snapshot window (the day the monitor last ran)
+Latest Date = CALCULATE ( MAX ( dim_date[date] ), ALL ( dim_date ) )
+
+// State counts for the selected day (defaults to the latest day when no date is selected)
+Datasets In State =
+VAR d = IF ( HASONEVALUE ( dim_date[date] ), VALUES ( dim_date[date] ), [Latest Date] )
+RETURN CALCULATE ( DISTINCTCOUNT ( fact_daily_status[dataset_id] ), fact_daily_status[date] = d )
+
+Healthy = CALCULATE ( [Datasets In State], fact_daily_status[state] = "Healthy" )
+Stale   = CALCULATE ( [Datasets In State], fact_daily_status[state] = "Stale" )
+Failed  = CALCULATE ( [Datasets In State], fact_daily_status[state] = "Failed" )
+Never Refreshed = CALCULATE ( [Datasets In State], fact_daily_status[state] = "Never refreshed" )
+Not Scheduled   = CALCULATE ( [Datasets In State], fact_daily_status[state] = "Not scheduled" )
+
+// Share of scheduled datasets that are healthy (Not scheduled is excluded from both sides)
+Health Rate =
+DIVIDE ( [Healthy], [Datasets In State] - [Not Scheduled] )
+
+Needs Attention = [Stale] + [Failed] + [Never Refreshed]
+
+Archive Candidates =
+CALCULATE ( COUNTROWS ( dim_dataset ), dim_dataset[archive_candidate] = TRUE () )
+
+// Refresh attempts
+Attempts = COUNTROWS ( fact_refresh_attempt )
+Failed Attempts = CALCULATE ( [Attempts], fact_refresh_attempt[status] = "Failed" )
+Attempt Failure Rate = DIVIDE ( [Failed Attempts], [Attempts] )
+Avg Refresh Minutes = AVERAGE ( fact_refresh_attempt[duration_min] )
+
+// Conditional-format colour for the state column (Format > Cell elements > Background colour > Field value)
+State Colour =
+SWITCH ( SELECTEDVALUE ( dim_dataset[state] ),
+    "Healthy", "#2E9E6B", "Stale", "#E0A030", "Failed", "#D64550",
+    "Never refreshed", "#8A5CC2", "Not scheduled", "#9AA3AF", "#9AA3AF" )

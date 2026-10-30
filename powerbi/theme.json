@@ -1,0 +1,12 @@
+{
+  "name": "Governance Monitor",
+  "dataColors": ["#2E9E6B", "#E0A030", "#D64550", "#8A5CC2", "#9AA3AF", "#2F6FDE", "#17A2B8", "#C2557A"],
+  "background": "#FFFFFF",
+  "foreground": "#1F2937",
+  "tableAccent": "#2F6FDE",
+  "textClasses": {
+    "title": { "fontFace": "Segoe UI Semibold", "fontSize": 14, "color": "#1F2937" },
+    "label": { "fontFace": "Segoe UI", "fontSize": 11, "color": "#4B5563" },
+    "callout": { "fontFace": "Segoe UI Semibold", "fontSize": 28, "color": "#1F2937" }
+  }
+}
